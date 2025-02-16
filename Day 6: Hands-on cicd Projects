@@ -1,0 +1,241 @@
+# **🗓 Day 6: Hands-on CI/CD Project - Full Pipeline for a Web App**  
+
+## **🎯 Goals for the Day**  
+✅ Set up a **fully automated CI/CD pipeline**  
+✅ Use **GitHub Actions, GitLab CI/CD, or Jenkins** for automation  
+✅ Implement **testing, building, and deployment** steps  
+✅ Deploy the application to a **Kubernetes cluster**  
+✅ Learn **rollback and deployment strategies**  
+
+---
+
+## **📌 Part 1: Project Overview & Architecture (1 Hour)**  
+
+### **🔹 Project Description**  
+You will build a **CI/CD pipeline** for a simple web application (**Node.js, Python, or Java**) and deploy it to **Kubernetes**. The pipeline will:  
+- **Build & Test** the application on every code push  
+- **Containerize** the app using **Docker**  
+- **Push** the image to **Docker Hub / GitHub Container Registry**  
+- **Deploy** the app using **Kubernetes (K8s)**  
+- **Monitor the deployment** and **implement rollback strategies**  
+
+### **🔹 Tech Stack for the Project**  
+✅ **Source Code Management**: GitHub / GitLab  
+✅ **CI/CD Tool**: GitHub Actions / GitLab CI/CD / Jenkins  
+✅ **Containerization**: Docker  
+✅ **Container Registry**: Docker Hub / GitHub Packages  
+✅ **Orchestration**: Kubernetes (Minikube, Kind, EKS, GKE, or AKS)  
+✅ **Infrastructure as Code**: Terraform (optional)  
+✅ **Monitoring**: Prometheus & Grafana (optional)  
+
+---
+
+## **📌 Part 2: Setting Up the Project Repository (1 Hour)**  
+
+### **🔹 Step 1: Clone the Sample Web App**  
+Use a simple Node.js, Python Flask, or Java Spring Boot app. If you don’t have one, you can fork a sample repo:  
+🔗 [Node.js Sample App](https://github.com/heroku/node-js-sample)  
+🔗 [Python Flask Sample App](https://github.com/pallets/flask)  
+
+```sh
+git clone https://github.com/heroku/node-js-sample.git
+cd node-js-sample
+```
+
+### **🔹 Step 2: Create a `.github/workflows/ci-cd-pipeline.yml` File**  
+Inside your repo, create a new GitHub Actions workflow file:  
+
+```sh
+mkdir -p .github/workflows
+touch .github/workflows/ci-cd-pipeline.yml
+```
+
+---
+
+## **📌 Part 3: Writing the CI/CD Pipeline (3 Hours)**  
+
+### **🔹 Step 3: Define CI/CD Stages in GitHub Actions / GitLab CI/CD**  
+
+#### **CI Stage - Build & Test**  
+- Install dependencies  
+- Run unit tests  
+
+```yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: npm install  # Change for Python/Java
+
+      - name: Run Tests
+        run: npm test
+```
+
+#### **CD Stage - Docker Build & Push**  
+- Build a Docker image  
+- Push the image to Docker Hub / GitHub Container Registry  
+
+```yaml
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build Docker Image
+        run: docker build -t myapp:latest .
+
+      - name: Push Image to Docker Hub
+        run: docker push myapp:latest
+```
+
+#### **Deploy Stage - Kubernetes Deployment**  
+- Apply K8s manifests  
+- Restart pods after deployment  
+
+```yaml
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker
+    steps:
+      - name: Set up Kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s-deployment.yml
+          kubectl rollout status deployment myapp
+```
+
+---
+
+## **📌 Part 4: Deploying to Kubernetes (2 Hours)**  
+
+### **🔹 Step 4: Write Kubernetes Deployment YAML**  
+Create a **`k8s-deployment.yml`** file in your repo:  
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: myapp
+          image: myapp:latest
+          ports:
+            - containerPort: 8080
+```
+
+### **🔹 Step 5: Deploy the Application to Kubernetes**  
+Apply the manifest to your **K8s Cluster**:  
+
+```sh
+kubectl apply -f k8s-deployment.yml
+kubectl get pods
+```
+
+---
+
+## **📌 Part 5: Rollback & Deployment Strategies (1 Hour)**  
+
+### **🔹 Step 6: Implement Blue-Green Deployment (Optional)**  
+Modify your deployment to use **two versions** of the application:  
+- One stable **(Green)**  
+- One testing **(Blue)**  
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-blue
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: blue
+    spec:
+      containers:
+        - name: myapp
+          image: myapp:latest
+          ports:
+            - containerPort: 8080
+```
+
+Switch traffic using an **Ingress Controller**.  
+
+---
+
+## **📌 Part 6: Testing & Debugging the Pipeline (1 Hour)**  
+
+### **🔹 Step 7: Check Logs & Debug Issues**  
+If something fails, check logs:  
+
+```sh
+kubectl logs -f deployment/myapp
+kubectl describe pod myapp
+```
+
+If a **GitHub Actions job fails**, check:  
+- **Secrets Configuration**  
+- **Docker Authentication**  
+- **Kubernetes API Access**  
+
+---
+
+## **📌 Part 7: Final Review & Mock Questions (1 Hour)**  
+
+### **🔹 Step 8: CI/CD Interview Questions**  
+
+1. **What are the key stages of a CI/CD pipeline?**  
+2. **How do you secure secrets in CI/CD pipelines?**  
+3. **What happens if a deployment fails? How do you rollback?**  
+4. **Explain the difference between Blue-Green and Canary deployments.**  
+5. **How do you optimize CI/CD pipelines for large-scale applications?**  
+
+---
+
+## **🚀 End-of-Day Checklist**  
+
+✅ **CI/CD Pipeline** built using GitHub Actions/GitLab CI/CD  
+✅ **Dockerized application** pushed to a container registry  
+✅ **Deployed** to Kubernetes using `kubectl apply`  
+✅ **Implemented rollback strategies** (optional)  
+✅ **Prepared for CI/CD-related interview questions**  
+
+---
+
+## **🌟 Next Steps**  
+Tomorrow, you'll dive into **Docker & Kubernetes** to understand container orchestration at scale!  
+
+🔥 Would you like to extend this project to **multi-cloud deployments** using Terraform & Ansible? 🚀
